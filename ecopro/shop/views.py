@@ -28,6 +28,14 @@ def about(request):
     return render(request,'shop/about.html')
 
 def contact(request):
+    if request.method=="POST":
+        print(request)
+        name= request.POST.get('name','')
+        email= request.POST.get('email','')
+        phone=request.POST.get('phone','')
+        desc=request.POST.get('desc','')
+        print(name,email,phone,desc)
+
     return render(request,'shop/contact.html')
 
 def tracker(request):
@@ -36,8 +44,9 @@ def tracker(request):
 def search(request):
     return render(request,"shop/search.html")
 
-def productview(request):
-    return render(request,"shop/productview.html")
+def productview(request,myid):
+    products=product.objects.filter(id=myid)
+    return render(request,'shop/productview.html',{'product':products[0]})
 
 def checkout(request):
     return render(request,"shop/checkout.html")
