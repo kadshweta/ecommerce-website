@@ -1,16 +1,13 @@
 from django.shortcuts import render
 from django.http import HttpResponse
-from .models import product,Contact,Orders
+from .models import product,Contact,Orders,OrderUpdate
 # from .models import product,Contact
 from math import ceil
-
+import json 
 # Create your views here.
 def index(request):
     products=product.objects.all()
     print(products)
-    # n=len(products)
-    # nslides=n//4 + ceil((n/4)-(n//4))
-
     allprods=[]
     catprods=product.objects.values('category','id')
     cats={item['category'] for item in catprods}
@@ -20,9 +17,6 @@ def index(request):
         nslides=n//4 + ceil((n/4)-(n//4))
         allprods.append([prod,range(1,nslides),nslides])
 
-    # params={'no_of_slide':nslide,'range':range(1,nslide),'product':products}
-    # allprods=[[products,range(1,nslides),nslides],
-    #           [products,range(1,nslides),nslides]]
     params={'allprods':allprods}
     return render(request,'shop/index.html',params)
 
@@ -41,7 +35,24 @@ def contact(request):
     return render(request,'shop/contact.html')
 
 def tracker(request):
-    return render(request,"shop/tracker.html")
+    if request.method=="POST":
+        orderId = request.POST.get('orderId', '')
+        email = request.POST.get('email', '')
+        try:
+            order = Orders.objects.filter(order_id=orderId, email=email)
+            if len(order)>0:
+                update = OrderUpdate.objects.filter(order_id=orderId)
+                updates = []
+                for item in update:
+                    updates.append({'text': item.update_desc, 'time': item.timestamp})
+                    response = json.dumps(updates, default=str)
+                return HttpResponse(response)
+            else:
+                return HttpResponse('{}')
+        except Exception as e:
+            return HttpResponse('{}')
+
+    return render(request, 'shop/tracker.html')
 
 def search(request):
     return render(request,"shop/search.html")
@@ -51,7 +62,6 @@ def productview(request,myid):
     return render(request,'shop/productview.html',{'product':products[0]})
 
 def checkout(request):
-    print("checkout")
     if request.method=="POST":
         items_json = request.POST.get('itemsJson', '')
         name = request.POST.get('name', '')
@@ -64,6 +74,8 @@ def checkout(request):
         order = Orders(items_json=items_json, name=name, email=email, address=address, city=city,
                        state=state, zip_code=zip_code, phone=phone)
         order.save()
+        update =OrderUpdate(order_id=order.order_id, update_desc="the order has been placed")
+        update.save()
         thank = True
         id = order.order_id
         
